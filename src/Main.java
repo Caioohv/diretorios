@@ -141,11 +141,28 @@ class File extends Item {
     return this.content;
   }
   public void setContent(String newcontent) {
-    this.content = newcontent;
+    this.content = newcontent + "\n";
   }
   public void appendContent(String morecontent) {
-    this.content += morecontent;
+    this.content += morecontent + "\n";
   }
+
+  public int getContentLength() {
+    return this.content.length();
+  }
+  public int getContentLines() {
+    return this.content.split("\n").length;
+  }
+  public int getContentWords() {
+    return this.content.replace("\n", " ").split(" ").length;
+  }
+  public int getContentChars() {
+    return this.content
+      .replace(" ", "")
+      .replace("\n", "")
+      .length();
+  }
+
 }
 
 class State {
@@ -235,7 +252,62 @@ public class Main {
     return f;
   }
 
+  static void echo(Folder currentDir, String conteudo, boolean substituir, String nomeArquivo) throws Exception {
+    conteudo = conteudo.replace("\\n", "\n");
+    
+    Item item = currentDir.getChild(nomeArquivo);
+    if(item == null) {
+      item = new File(nomeArquivo, "");
+    }
+    if(item.getType().equals("dir")) {
+      throw new Exception("Erro: Não é possível escrever em um diretório");
+    }
 
+    try {
+      if(substituir) {
+        ((File) item).setContent(conteudo.trim());
+      } else {
+        ((File) item).appendContent(conteudo.trim());
+      }
+    } catch (Exception e) {
+      item = new File(nomeArquivo, conteudo.trim());
+      currentDir.addFile((File) item);
+    }
+  }
+
+  static void rm(Folder currentDir, String name) throws Exception {
+    currentDir.removeFile(name);
+  }
+
+  static void head(Folder currentDir, String nomeArquivo, int nLinhas) throws Exception {
+    File fileHead = currentDir.detailFile(nomeArquivo);
+    String[] linhas = fileHead.getContent().split("\n");
+    nLinhas = Math.min(nLinhas, linhas.length);
+    for(int i = 0; i < nLinhas; i++) {
+      System.out.println(linhas[i]);
+    }
+  }
+
+  static void tail(Folder currentDir, String nomeArquivo, int nLinhas) throws Exception {
+    File fileHead = currentDir.detailFile(nomeArquivo);
+    String[] linhas = fileHead.getContent().split("\n");
+    String[] linhasRevertidas = new String[linhas.length];
+    for(int i = 0; i < linhas.length; i++) {
+      linhasRevertidas[i] = linhas[linhas.length - 1 - i];
+    }
+    linhas = linhasRevertidas;
+    nLinhas = Math.min(nLinhas, linhas.length);
+    for(int i = nLinhas-1; i >= 0; i--) {
+      System.out.println(linhas[i]);
+    }
+  }
+
+  static void wc(Folder currentDir, String nomeArquivo) throws Exception {
+    File fileWc = currentDir.detailFile(nomeArquivo);
+    System.out.println("Linhas: " + fileWc.getContentLines());
+    System.out.println("Palavras: " + fileWc.getContentWords());
+    System.out.println("Caracteres: " + fileWc.getContentChars());
+  }
 
   public static void main(String[] args) {
     Folder currentDir = new Folder("/");
@@ -284,39 +356,31 @@ public class Main {
             break;
           case "echo":
             int nPartes = partes.length;
-
             String conteudo = "";
             for(int i2 = 1; i2 < nPartes -2; i2++) {
               conteudo += partes[i2] + " ";
             }
-            
             boolean substituir = partes[nPartes -2].equals(">");
             String nomeArquivo = partes[nPartes -1];
-            Item item = currentDir.getChild(nomeArquivo);
-            if(item == null) {
-              item = new File(nomeArquivo, "");
-            }
-            if(item.getType().equals("dir")) {
-              throw new Exception("Erro: Não é possível escrever em um diretório");
-            }
-
-            try {
-              if(substituir) {
-                ((File) item).setContent(conteudo.trim());
-              } else {
-                ((File) item).appendContent(conteudo.trim());
-              }
-            } catch (Exception e) {
-              item = new File(nomeArquivo, conteudo.trim());
-              currentDir.addFile((File) item);
-            }
+            echo(currentDir, conteudo, substituir, nomeArquivo);
             break;
           case "cat":
             File file = currentDir.detailFile(partes[1]);
             cat(file);
             break;
           case "rm":
-            currentDir.removeFile(partes[1]);
+            rm(currentDir, partes[1]);
+            break;
+          case "head":
+            int nLinhas = partes.length > 2 ? Integer.parseInt(partes[2]) : 10;
+            head(currentDir, partes[1], nLinhas);
+            break;
+          case "tail":
+            int nLinhasTail = partes.length > 2 ? Integer.parseInt(partes[2]) : 10;
+            tail(currentDir, partes[1], nLinhasTail);
+            break;
+          case "wc":
+            wc(currentDir, partes[1]);
             break;
           case "exit":
             System.out.println("Saindo...");
