@@ -168,10 +168,15 @@ class File extends Item {
 class State {
   ArrayList<String> history;
   ArrayList<String> currentPath;
+  ArrayList<Folder> directoryStack;
+  Folder rootDir;
   
-  State(){
+  State(Folder root){
     history = new ArrayList<>();
     currentPath = new ArrayList<>();
+    directoryStack = new ArrayList<>();
+    rootDir = root;
+    directoryStack.add(root);
   }
 
   void addToPath(String path) {
@@ -181,17 +186,38 @@ class State {
   void removeFromPath() throws Exception {
     if(currentPath.size() > 1){
       currentPath.remove(currentPath.size() - 1);
+      directoryStack.remove(directoryStack.size() - 1);
     }else{
       throw new Exception("Erro: Já está na raiz");
     }
   }
+  
+  void addToDirectoryStack(Folder dir) {
+    directoryStack.add(dir);
+  }
+  
+  Folder getCurrentDir() {
+    return directoryStack.get(directoryStack.size() - 1);
+  }
+  
+  void resetToRoot() {
+    currentPath.clear();
+    directoryStack.clear();
+    currentPath.add("/");
+    directoryStack.add(rootDir);
+  }
 
   String getCurrentPath() {
+    if(currentPath.size() == 1 && currentPath.get(0).equals("/")) {
+      return "/";
+    }
     String path = "";
     for(String p : currentPath) {
-      path += "/" + p;
+      if(!p.equals("/")) {
+        path += "/" + p;
+      }
     }
-    return path;
+    return path.isEmpty() ? "/" : path;
   }
 
   void addToHistory(String command) {
@@ -309,10 +335,33 @@ public class Main {
     System.out.println("Caracteres: " + fileWc.getContentChars());
   }
 
+  static void cd(State state, String destino) throws Exception {
+    if(destino.equals("..")) {
+      state.removeFromPath();
+    } else if(destino.equals("/")) {
+      state.resetToRoot();
+    } else {
+      Folder currentDir = state.getCurrentDir();
+      Item item = currentDir.getChild(destino);
+      if(item == null) {
+        throw new Exception("Erro: Diretório não existe");
+      }
+      if(!item.getType().equals("dir")) {
+        throw new Exception("Erro: Não é um diretório");
+      }
+      state.addToPath(destino);
+      state.addToDirectoryStack((Folder) item);
+    }
+  }
+
+  static void pwd(State state) {
+    System.out.println(state.getCurrentPath());
+  }
+
   public static void main(String[] args) {
-    Folder currentDir = new Folder("/");
-    State state = new State();
-    state.addToPath(currentDir.getName());
+    Folder rootDir = new Folder("/");
+    State state = new State(rootDir);
+    state.addToPath("/");
 
 
     Scanner s = new Scanner(System.in);
@@ -320,8 +369,9 @@ public class Main {
     String comando = "";
 
     do{
+      Folder currentDir = state.getCurrentDir();
       
-      System.out.print("✗ "+currentDir.getName()+" ➜ ");
+      System.out.print("✗ "+state.getCurrentPath()+" ➜ ");
       comando = s.nextLine();
 
       comando = comando.trim();
@@ -381,6 +431,16 @@ public class Main {
             break;
           case "wc":
             wc(currentDir, partes[1]);
+            break;
+          case "cd":
+            if(partes.length == 1) {
+              state.resetToRoot();
+            } else {
+              cd(state, partes[1]);
+            }
+            break;
+          case "pwd":
+            pwd(state);
             break;
           case "exit":
             System.out.println("Saindo...");
