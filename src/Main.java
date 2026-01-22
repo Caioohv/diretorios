@@ -1,13 +1,19 @@
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Scanner;
 
 class Item {
 
   private String name, type;
+  private Date creationDate;
+  private Date modificationDate;
   
   Item(String name, String type) {
     this.name = name;
     this.type = type;
+    this.creationDate = new Date();
+    this.modificationDate = new Date();
   }
 
   public String toString() {
@@ -24,10 +30,23 @@ class Item {
 
   public void setName(String newname){
     this.name = newname;
+    this.modificationDate = new Date();
   }
 
   public String getType() {
     return this.type;
+  }
+  
+  public Date getCreationDate() {
+    return this.creationDate;
+  }
+  
+  public Date getModificationDate() {
+    return this.modificationDate;
+  }
+  
+  public void updateModificationDate() {
+    this.modificationDate = new Date();
   }
 
 }
@@ -126,6 +145,35 @@ class Folder extends Item {
       }
     }
   }
+  
+  public long getSize() {
+    long size = 0;
+    for (Item item : this.childs) {
+      if (item.getType().equals("file")) {
+        size += ((File) item).getContentLength();
+      } else {
+        size += ((Folder) item).getSize();
+      }
+    }
+    return size;
+  }
+  
+  public void findByName(String name, String currentPath, ArrayList<String> results) {
+    String itemPath = currentPath.equals("/") ? "/" + this.getName() : currentPath + "/" + this.getName();
+    if (this.getName().contains(name)) {
+      results.add(itemPath);
+    }
+    for (Item item : this.childs) {
+      if (item.getType().equals("dir")) {
+        ((Folder) item).findByName(name, itemPath, results);
+      } else {
+        String filePath = itemPath + "/" + item.getName();
+        if (item.getName().contains(name)) {
+          results.add(filePath);
+        }
+      }
+    }
+  }
 }
 
 class File extends Item {
@@ -142,9 +190,11 @@ class File extends Item {
   }
   public void setContent(String newcontent) {
     this.content = newcontent + "\n";
+    this.updateModificationDate();
   }
   public void appendContent(String morecontent) {
     this.content += morecontent + "\n";
+    this.updateModificationDate();
   }
 
   public int getContentLength() {
@@ -269,6 +319,49 @@ public class Main {
     }
   }
 
+  static void lsDetailed(Folder folder) {
+    ArrayList<Item> lista = folder.getChilds();
+    
+    ArrayList<Folder> Folders = new ArrayList<>();
+    ArrayList<File> Files = new ArrayList<>();
+
+    for(Item i : lista) {
+      if(i.getType().equals("dir")) {
+        Folders.add((Folder) i);
+      }else {
+        Files.add((File) i);
+      }
+    }
+
+    SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+    
+    System.out.println(String.format("%-4s %-20s %-10s %-20s %-20s", 
+                                      "Tipo", "Nome", "Tamanho", "Criação", "Modificação"));
+    System.out.println("─".repeat(80));
+    
+    for(Folder dir : Folders) {
+      String tipo = "DIR ";
+      String nome = dir.getName();
+      String tamanho = dir.getSize() + "b";
+      String criacao = sdf.format(dir.getCreationDate());
+      String modificacao = sdf.format(dir.getModificationDate());
+      
+      System.out.println(String.format("%-4s %-20s %-10s %-20s %-20s", 
+                                        tipo, nome, tamanho, criacao, modificacao));
+    }
+
+    for(File file : Files) {
+      String tipo = "FILE";
+      String nome = file.getName();
+      String tamanho = file.getContentLength() + "b";
+      String criacao = sdf.format(file.getCreationDate());
+      String modificacao = sdf.format(file.getModificationDate());
+      
+      System.out.println(String.format("%-4s %-20s %-10s %-20s %-20s", 
+                                        tipo, nome, tamanho, criacao, modificacao));
+    }
+  }
+
   static void cat(File file){
     System.out.println(file.getContent());
   }
@@ -358,6 +451,81 @@ public class Main {
     System.out.println(state.getCurrentPath());
   }
 
+  static void find(Folder startDir, String name, String startPath) {
+    ArrayList<String> results = new ArrayList<>();
+    startDir.findByName(name, startPath.equals("/") ? "" : startPath, results);
+    if(results.isEmpty()) {
+      System.out.println("Nenhum resultado encontrado");
+    } else {
+      for(String result : results) {
+        System.out.println(result);
+      }
+    }
+  }
+
+  static void grep(Folder currentDir, String termo, String nomeArquivo) throws Exception {
+    File file = currentDir.detailFile(nomeArquivo);
+    String[] linhas = file.getContent().split("\n");
+    boolean encontrou = false;
+    for(int i = 0; i < linhas.length; i++) {
+      if(linhas[i].contains(termo)) {
+        System.out.println((i+1) + ": " + linhas[i]);
+        encontrou = true;
+      }
+    }
+    if(!encontrou) {
+      System.out.println("Termo não encontrado no arquivo");
+    }
+  }
+
+  static void stat(Folder currentDir, String nome) throws Exception {
+    Item item = currentDir.getChild(nome);
+    if(item == null) {
+      throw new Exception("Erro: Item não existe");
+    }
+    
+    SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+    System.out.println("Nome: " + item.getName());
+    System.out.println("Tipo: " + (item.getType().equals("dir") ? "Diretório" : "Arquivo"));
+    System.out.println("Data de criação: " + sdf.format(item.getCreationDate()));
+    System.out.println("Última modificação: " + sdf.format(item.getModificationDate()));
+    
+    if(item.getType().equals("file")) {
+      File file = (File) item;
+      System.out.println("Tamanho: " + file.getContentLength() + " bytes");
+      System.out.println("Linhas: " + file.getContentLines());
+      System.out.println("Palavras: " + file.getContentWords());
+    } else {
+      Folder folder = (Folder) item;
+      System.out.println("Número de itens: " + folder.countChilds());
+      System.out.println("Tamanho total: " + folder.getSize() + " bytes");
+    }
+  }
+
+  static void du(Folder currentDir, String nomeDiretorio) throws Exception {
+    Item item = currentDir.getChild(nomeDiretorio);
+    if(item == null) {
+      throw new Exception("Erro: Diretório não existe");
+    }
+    if(!item.getType().equals("dir")) {
+      throw new Exception("Erro: Não é um diretório");
+    }
+    Folder folder = (Folder) item;
+    long size = folder.getSize();
+    System.out.println(size + " bytes\t" + nomeDiretorio);
+  }
+
+  static void history(State state) {
+    ArrayList<String> hist = state.history;
+    if(hist.isEmpty()) {
+      System.out.println("Histórico vazio");
+    } else {
+      for(int i = 0; i < hist.size(); i++) {
+        System.out.println((i+1) + "  " + hist.get(i));
+      }
+    }
+  }
+
   public static void main(String[] args) {
     Folder rootDir = new Folder("/");
     State state = new State(rootDir);
@@ -376,6 +544,10 @@ public class Main {
 
       comando = comando.trim();
       String[] partes = comando.split(" ");
+      
+      if(!comando.isEmpty() && !comando.equals("exit")) {
+        state.addToHistory(comando);
+      }
 
       try{
         switch(partes[0]){
@@ -393,7 +565,11 @@ public class Main {
             rename(i, partes[2]);
             break;
           case "ls":
-            ls(currentDir);
+            if(partes.length > 1 && partes[1].equals("-l")) {
+              lsDetailed(currentDir);
+            } else {
+              ls(currentDir);
+            }
             break;
           case "touch":
             if(partes.length == 2) {
@@ -441,6 +617,38 @@ public class Main {
             break;
           case "pwd":
             pwd(state);
+            break;
+          case "find":
+            if(partes.length >= 4 && partes[2].equals("-name")) {
+              Folder searchDir = state.getCurrentDir();
+              if(!partes[1].equals(".")) {
+                Item item = searchDir.getChild(partes[1]);
+                if(item != null && item.getType().equals("dir")) {
+                  searchDir = (Folder) item;
+                } else {
+                  throw new Exception("Erro: Diretório não encontrado");
+                }
+              }
+              find(searchDir, partes[3], state.getCurrentPath() + (partes[1].equals(".") ? "" : "/" + partes[1]));
+            } else {
+              throw new Exception("Uso: find <diretorio> -name <nome>");
+            }
+            break;
+          case "grep":
+            if(partes.length >= 3) {
+              grep(currentDir, partes[1], partes[2]);
+            } else {
+              throw new Exception("Uso: grep <termo> <arquivo>");
+            }
+            break;
+          case "stat":
+            stat(currentDir, partes[1]);
+            break;
+          case "du":
+            du(currentDir, partes[1]);
+            break;
+          case "history":
+            history(state);
             break;
           case "exit":
             System.out.println("Saindo...");

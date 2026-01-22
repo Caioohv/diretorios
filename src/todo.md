@@ -1,0 +1,29 @@
+- [x] mkdir <nome>: Criar um novo diretório.
+- [x] rmdir <nome>: Remover um diretório vazio.
+- [x] tree: Mostrar a estrutura hierárquica de arquivos e diretórios.
+- [x] rename <nome_antigo> <novo_nome>: Renomear um arquivo ou diretório.
+- [x] touch <nome>: Criar um arquivo vazio.
+- [x] echo <texto> > <arquivo>: Adicionar ou sobrescrever o conteúdo de um arquivo.
+- [x] echo <texto> >> <arquivo>: Adicionar texto ao final do conteúdo existente de um arquivo.
+- [x] cat <arquivo>: Mostrar o conteúdo de um arquivo.
+- [x] rm <nome>: Remover um arquivo ou diretório (mesmo que não esteja vazio).
+- [x] head <arquivo> <n>: Exibir as primeiras `n` linhas do arquivo.
+- [x] tail <arquivo> <n>: Exibir as últimas `n` linhas do arquivo.
+- [x] wc <arquivo>: Mostrar o número de linhas, palavras e caracteres de um arquivo.
+- [x] cd <nome>: Navegar para um diretório específico.
+- [x] cd ..: Voltar ao diretório anterior.
+- [x] cd /: Ir para o diretório raiz.
+- [x] pwd: Exibir o caminho completo do diretório atual.
+- [x] find <diretorio> -name <nome>: Procurar arquivos ou diretórios pelo nome em uma hierarquia.
+- [x] grep <termo> <arquivo>: Procurar por uma palavra ou frase dentro de um arquivo.
+- [ ] chmod <permissao> <nome>: Alterar permissões de um arquivo ou diretório (simular leitura, escrita e execução).
+- [ ] chown <proprietario> <nome>: Alterar o proprietário de um arquivo ou diretório.
+- [x] ls -l: Listar conteúdo do diretório com detalhes (nome, tipo, tamanho, permissões, etc.).
+- [x] stat <nome>: Exibir informações detalhadas de um arquivo ou diretório (tamanho, data de criação, última modificação, etc.).
+- [x] du <diretorio>: Exibir o tamanho do diretório em bytes.
+- [ ] cp <origem> <destino>: Copiar arquivos ou diretórios.
+- [ ] mv <origem> <destino>: Mover arquivos ou diretórios para outra localização.
+- [ ] diff <arquivo1> <arquivo2>: Comparar dois arquivos e exibir as diferenças.
+- [ ] zip <arquivo.zip> <itens>: Compactar arquivos ou diretórios em um arquivo `.zip` (simulado).
+- [ ] unzip <arquivo.zip>: Descompactar um arquivo `.zip`.
+- [x] history: Exibir os últimos comandos digitados.
